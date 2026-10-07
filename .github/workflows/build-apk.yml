@@ -15,9 +15,24 @@ jobs:
           java-version: '17'
       - name: Build debug APK
         run: |
-          chmod +x gradlew
-          ./gradlew assembleDebug --no-daemon
+          S=$(find . -name settings.gradle -not -path './.git/*' | head -1)
+          if [ -z "$S" ]; then
+            echo "settings.gradle не найден. Структура репозитория:"
+            find . -not -path './.git/*' | head -50
+            exit 1
+          fi
+          D=$(dirname "$S")
+          echo "Проект в: $D"
+          wget -q https://services.gradle.org/distributions/gradle-8.14.3-bin.zip -O /tmp/gradle.zip
+          unzip -q /tmp/gradle.zip -d /tmp
+          cd "$D"
+          /tmp/gradle-8.14.3/bin/gradle assembleDebug --no-daemon
+      - name: Collect APK
+        run: |
+          mkdir -p out
+          find . -name 'app-debug.apk' -exec cp {} out/ \;
+          ls -la out
       - uses: actions/upload-artifact@v4
         with:
           name: gonka270-apk
-          path: app/build/outputs/apk/debug/app-debug.apk
+          path: out/app-debug.apk
